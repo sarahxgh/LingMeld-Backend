@@ -186,24 +186,6 @@ def get_student_evaluation(request):
 
 
 @api_view(['POST'])
-def print_data (request) : 
-    usr = user.objects.filter(email = request.data['email']).first()
-    return Response({"message":usr.answers})
-
-@api_view(['POST'])
-def test (request): 
-    sky = ' the color of the sky'
-    payload = {
-        "prompt" : f"what si the {sky}"
-        }
-    url = "http://localhost:5000/quiz-data/"
-    headers = {
-                "Content-Type": "application/json",
-            }
-    response = requests.post(url=url, json=payload, headers=headers)  
-    return Response({"response": response})
-
-@api_view(['POST'])
 def get_score(request): 
     email = request.data['email']
     usr = user.objects.filter(email=email).first()
@@ -223,8 +205,5 @@ def get_number_corr_exos(request):
     if not usr: 
         return Response({"success":False,"message": "user does not exits"})
     else : 
-        evaluation_data = json.loads(usr.evaluation) 
-    
-    # lets try to get the number of exercises done correctly 
-
-        return Response({"success":True, "score": perfomance})
+        exos = json.loads(usr.evaluation) 
+        return Response({"success":True, "score": len(exos)})
