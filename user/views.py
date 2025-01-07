@@ -1,3 +1,4 @@
+import io
 import json
 import os
 import uuid
@@ -9,6 +10,8 @@ from user.serializer import UserSerializer
 from .models import user
 from django.utils.timezone import now
 import requests
+from pdfminer.high_level import extract_text
+from transformers import MarianMTModel, MarianTokenizer
 
 # Create your views here.
 @api_view(['POST'])
@@ -47,7 +50,9 @@ def Login(request):
         if not usr.check_password(request.data['password']):
             return Response({"seccess":False, "message": "wrong credentials"})
         elif usr and usr.check_password(request.data['password']): # repeat the check just in case we miss some case where it can bypass this if statements. 
-            return Response({"success": True,"message":"logged in successfully"})
+
+            return Response({"success": True,"message":"logged in successfully","taken_test" : usr.hasTakentest})
+        
     except user.DoesNotExist: 
         return Response({"success": False, "Message":"Wrong credentials"})
     
@@ -91,8 +96,7 @@ def save_user_answers(request):
                 "Content-Type": "application/json",
             }
             prompt = f'''
-You are an assessment expert in Arabic-English-Arabic translation for students who are native
-Darija speakers with Arabic as their first language and English as their second language. 
+You are an assessment expert in Arabic-English-Arabic translation.
 Analyze the student's performance in the exercise type below.
 The evaluation you are going to give is going to be used to generate tailored exercises to resolve the weaknesses.
 
@@ -207,3 +211,94 @@ def get_number_corr_exos(request):
     else : 
         exos = json.loads(usr.evaluation) 
         return Response({"success":True, "score": len(exos)})
+    
+
+
+# 1. Load MarianMT for Arabic->English
+ar_en_model_name = "Helsinki-NLP/opus-mt-ar-en"
+ar_en_tokenizer = MarianTokenizer.from_pretrained(ar_en_model_name)
+ar_en_model = MarianMTModel.from_pretrained(ar_en_model_name)
+
+# 2. Load MarianMT for English->Arabic
+en_ar_model_name = "Helsinki-NLP/opus-mt-en-ar"
+en_ar_tokenizer = MarianTokenizer.from_pretrained(en_ar_model_name)
+en_ar_model = MarianMTModel.from_pretrained(en_ar_model_name)
+
+@api_view(['POST'])
+def translate_pdf_view(request):
+    print("hello")
+    """
+    Receives a PDF, extracts text with pdfminer, translates it using MarianMT.
+    Expects the form field "file" for the uploaded PDF.
+    Also optionally "direction": 'ar-en' or 'en-ar'.
+    """
+    pdf_file = request.FILES.get('file')
+    print(pdf_file)
+    # For example, default to Arabic->English if not specified
+    direction = request.data['direction']
+    print(direction)
+
+    if not pdf_file:
+        return Response({"success":True,"message": "No PDF file provided."})
+
+    try:
+        # Extract the text from the PDF
+        extracted_text = extract_text_from_pdf(pdf_file)
+        print(extract_text)
+
+        # Translate based on direction
+        if direction == 'ar-en':
+            translated_text = translate_ar_to_en(extracted_text)
+        elif direction == 'en-ar':
+            translated_text = translate_en_to_ar(extracted_text)
+        else:
+            return Response({"success":False,"message": "Invalid translation direction."})
+        print("here",translated_text)
+        return Response({
+            "success" : True,
+            "message": "uploaded successfully",
+            "extracted_text": extracted_text,
+            "translated_text": translated_text
+        })
+
+    except Exception as e:
+        return Response(
+            {"success":False,
+                "message": str(e)}, 
+        )
+
+
+def extract_text_from_pdf(pdf_file):
+    """
+    Extracts text from a PDF using pdfminer.six.
+    """
+    pdf_data = pdf_file.read()
+    pdf_file.seek(0)  # reset pointer if needed later
+    text = extract_text(io.BytesIO(pdf_data))
+    return text.strip()
+
+
+def translate_ar_to_en(text: str) -> str:
+    """
+    Translate Arabic -> English using MarianMT
+    """
+    # Tokenize
+    inputs = ar_en_tokenizer([text], return_tensors="pt", padding=True, truncation=True)
+    # Generate translation
+    translated_tokens = ar_en_model.generate(**inputs)
+    # Decode to string
+    translation = ar_en_tokenizer.batch_decode(translated_tokens, skip_special_tokens=True)
+    return translation[0]
+
+
+def translate_en_to_ar(text: str) -> str:
+    """
+    Translate English -> Arabic using MarianMT
+    """
+    # Tokenize
+    inputs = en_ar_tokenizer([text], return_tensors="pt", padding=True, truncation=True)
+    # Generate translation
+    translated_tokens = en_ar_model.generate(**inputs)
+    # Decode to string
+    translation = en_ar_tokenizer.batch_decode(translated_tokens, skip_special_tokens=True)
+    return translation[0]

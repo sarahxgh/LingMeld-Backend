@@ -10,6 +10,7 @@ class user(AbstractUser):
     img = models.ImageField(upload_to='user_avatar/', blank=True, null=True)
     answers = models.JSONField(default=dict)
     evaluation = models.TextField(blank=True, default="") 
+    hasTakentest = models.BooleanField(default=False)
     
     
     USERNAME_FIELD = 'email'
