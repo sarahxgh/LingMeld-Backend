@@ -1,4 +1,19 @@
-POST http://127.0.0.1:8000/user/get-user-data/
+# POST http://127.0.0.1:8000/user/save-user-answers/
+POST http://127.0.0.1:8000/user/GetEvaluation/
 Content-Type: application/json
 
-{"email":"cairadaria@gmail.com"}
+{
+  "email": "cairadaria@gmail.com",
+  "answers": {
+    "correctAnswer": "The translation of this book is difficult",
+    "instruction": "Reorder the words in the sentence to form a grammatically correct and logically coherent sentence in English. The sentences are relevant to translation contexts and are designed to help improve your ability to recognize and construct correct sentences, focusing on challenges such as word order, subject-verb-object structures, and modifier placement. For example, if the scrambled sentence is 'dog the is happy', the correct reorder would be 'The dog is happy' because in English, the definite article 'the' comes before the noun 'dog', and the verb 'is' follows the subject 'dog' to form a basic sentence structure.",
+    "sentence": "Translation the of book this difficult is",
+    "type": "Sentence Reordering",
+    "userAnswer": "this translation of the book is difficult"
+  }
+}
+
+
+
+
+
