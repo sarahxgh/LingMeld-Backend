@@ -195,6 +195,7 @@ def store_evaluation (request) :
     usr = user.objects.filter(email=email).first()
     if usr : 
         usr.evaluation = evaluation 
+        usr.hasTakentest = True
         usr.save()
         return Response({"success":True, "message": "Evaluation stored successfully"})
     else : 
