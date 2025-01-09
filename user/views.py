@@ -187,7 +187,19 @@ def get_student_evaluation(request):
     else : 
         return Response({"success":True,"evaluation" : perfomance})
     
+@api_view(['POST'])
+def store_evaluation (request) : 
+    email = request.data['email']
+    evaluation = request.data['evaluation']
 
+    usr = user.objects.filter(email=email).first()
+    if usr : 
+        usr.evaluation = evaluation 
+        usr.save()
+        return Response({"success":True, "message": "Evaluation stored successfully"})
+    else : 
+        return Response({"successs":False, "message": "this user does not exist"})
+    
 
 @api_view(['POST'])
 def get_score(request): 
