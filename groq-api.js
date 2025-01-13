@@ -2,7 +2,7 @@ import express from 'express';
 import Groq from "groq-sdk";
 import cors from 'cors';
 
-const groqApiKey = "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"
+const groqApiKey = ""
 const groq = new Groq({ apiKey: groqApiKey });
 const app = express();
 const port = 5000;
